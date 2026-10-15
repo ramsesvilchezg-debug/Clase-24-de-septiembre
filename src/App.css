@@ -1,3 +1,12 @@
+*{
+    margin: 0;
+    box-sizing: border-box;
+}
+
+section{
+    padding-bottom: 100px;
+}
+
 .c-menu{
     background-color: silver;
     flex-wrap: wrap;
@@ -10,8 +19,4 @@
     gap: 10px;
     width: 100%;
     padding: 15px;
-}
-
-.c-contenido{
-    padding-bottom: 100px;
 }
