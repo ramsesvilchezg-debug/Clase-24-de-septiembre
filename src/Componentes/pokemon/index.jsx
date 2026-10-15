@@ -1,87 +1,79 @@
+import { useParams } from "react-router-dom"
 import { useState, useEffect } from 'react'
-import { useNavigate } from 'react-router-dom'
 import './style.css'
 
-function Inicio() {
-  const [todoslospokes, setTodoslospokes] = useState([])
-  const [busqueda, setBusqueda] = useState('')
-  const [tipopoke, setTipopoke] = useState('All')
-  const navigate = useNavigate()
-
-  useEffect(() => {
-    const cargarPokemons = async () => {
-      try {
-        if (tipopoke === 'All') {
-          const response = await fetch('https://pokeapi.co/api/v2/pokemon?limit=1025')
-          const responseData = await response.json()
-          setTodoslospokes(responseData.results ?? [])
-          return
+function Pokemon() {
+    const { name } = useParams()
+    const [datapoke, setDatapoke] = useState(null)
+    const [error, setError] = useState(false)
+    const [favoritos, setFavoritos] = useState(() => {
+        try {
+            return JSON.parse(localStorage.getItem('favoritos') || '[]')
+        } catch {
+            return []
         }
+    })
+    const esFavorito = favoritos.some(p => p.id === datapoke?.id)
 
-        const response = await fetch(`https://pokeapi.co/api/v2/type/${tipopoke}`)
-        const responseData = await response.json()
-        const mascotas = responseData.pokemon?.map((entry) => entry.pokemon) ?? []
-        setTodoslospokes(mascotas)
-      } catch (error) {
-        console.error('Error:', error)
-      }
+    useEffect(() => {
+        let cancelado = false
+        setDatapoke(null)
+        setError(false)
+
+        fetch(`https://pokeapi.co/api/v2/pokemon/${name}`)
+            .then(response => {
+                if (!response.ok) throw new Error(`Estado ${response.status}`)
+                return response.json()
+            })
+            .then(responseData => {
+                if (!cancelado) setDatapoke(responseData)
+            })
+            .catch(err => {
+                console.error("Error:", err)
+                if (!cancelado) setError(true)
+            })
+
+        return () => { cancelado = true }
+    }, [name])
+
+    const toggleFavorito = () => {
+        if (!datapoke) return
+        let nuevosFavoritos
+        if (esFavorito) {
+            nuevosFavoritos = favoritos.filter(p => p.id !== datapoke.id)
+        } else {
+            nuevosFavoritos = [...favoritos, { id: datapoke.id, nombre: datapoke.name }]
+        }
+        setFavoritos(nuevosFavoritos)
+        localStorage.setItem('favoritos', JSON.stringify(nuevosFavoritos))
     }
 
-    cargarPokemons()
-  }, [tipopoke])
+    if (error) return <p>No se pudo cargar este Pokémon.</p>
+    if (!datapoke) return <p>Cargando...</p>
 
-  const resultados = busqueda.trim().length >= 3 && isNaN(busqueda)
-    ? todoslospokes.filter((pokemon) =>
-        pokemon.name.toLowerCase().includes(busqueda.toLowerCase())
-      )
-    : todoslospokes
+    return (
+        <div>
+            <h1>{datapoke.name}</h1>
+            <p>Endpoint: https://pokeapi.co/api/v2/pokemon/{datapoke.id}</p>
+            <img
+                src={`https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/${datapoke.id}.png`}
+                alt={datapoke.name}
+                width="200"
+            />
 
-  const tipos = [
-    'All',
-    'normal', 'fighting', 'flying', 'poison', 'ground', 'rock',
-    'bug', 'ghost', 'steel', 'fire', 'water', 'grass', 'electric',
-    'psychic', 'ice', 'dragon', 'dark', 'fairy', 'stellar', 'shadow', 'unknown'
-  ]
+            <p>{datapoke.id}</p>
+            <p>Altura: {datapoke.height / 10} m / Peso: {datapoke.weight / 10} kg</p>
 
-  if (todoslospokes.length === 0) return <p>Cargando...</p>
-  if (resultados.length === 0) return <p>No se encontraron Pokémon.</p>
+            <p>hp: {datapoke.stats[0].base_stat}</p>
+            <p>Velocidad: {datapoke.stats[5].base_stat}</p>
+            <p>Ataque: {datapoke.stats[1].base_stat} Defensa: {datapoke.stats[2].base_stat}</p>
+            <p>Ataque Especial: {datapoke.stats[3].base_stat} Defensa Especial: {datapoke.stats[4].base_stat}</p>
 
-  return (
-    <>
-      <div className="c-filtro">
-        {tipos.map((unTipo, index) => (
-          <button type="button" key={index} onClick={() => setTipopoke(unTipo)}>
-            {unTipo}
-          </button>
-        ))}
-      </div>
-
-      <input
-        type="text"
-        placeholder="Buscar Pokémon"
-        value={busqueda}
-        onChange={(e) => setBusqueda(e.target.value)}
-        className="c-buscador"
-      />
-      
-      <div className="c-lista">
-      {resultados.map((pokemon) => (
-        <div className="c-lista-pokemon" key={pokemon.name} onClick={() => navigate(`/pokemon/${pokemon.name}`)}>
-          <p>{pokemon.url.split('/')[6]}</p>
-          <p>{pokemon.name}</p>
-
-          <img
-            src={`https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/${pokemon.url.split('/')[6]}.png`}
-            alt={`Pokémon ${pokemon.name}`}
-            width="auto"
-            height="60"
-            loading="lazy"
-          />
+            <button onClick={toggleFavorito}>
+                {esFavorito ? '❤️' : '🤍'}
+            </button>
         </div>
-      ))}
-      </div>
-    </>
-  )
+    )
 }
 
-export default Inicio
+export default Pokemon
