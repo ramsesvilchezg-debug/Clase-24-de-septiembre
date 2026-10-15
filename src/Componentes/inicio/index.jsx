@@ -1,22 +1,12 @@
 import { useState, useEffect } from 'react'
-import { useNavigate } from "react-router-dom";
-
+import { useNavigate } from 'react-router-dom'
 import './style.css'
 
 function Inicio() {
-
-  const navigate = useNavigate();
-  const [todoslospokes, setTodoslospokes] = useState([]);
-  const [busqueda, setBusqueda] = useState('');
+  const [todoslospokes, setTodoslospokes] = useState([])
+  const [busqueda, setBusqueda] = useState('')
   const [tipopoke, setTipopoke] = useState('All')
-  
-  let resultados = todoslospokes;
-
-  if (busqueda.length >= 3 && isNaN(busqueda)) {
-    resultados = todoslospokes.filter(pokemon =>
-      pokemon.name.toLowerCase().includes(busqueda.toLowerCase())
-    );
-  }
+  const navigate = useNavigate()
 
   useEffect(() => {
     const cargarPokemons = async () => {
@@ -39,18 +29,23 @@ function Inicio() {
 
     cargarPokemons()
   }, [tipopoke])
-  
 
-    const tipos = [
+  const resultados = busqueda.trim().length >= 3 && isNaN(busqueda)
+    ? todoslospokes.filter((pokemon) =>
+        pokemon.name.toLowerCase().includes(busqueda.toLowerCase())
+      )
+    : todoslospokes
+
+  const tipos = [
     'All',
     'normal', 'fighting', 'flying', 'poison', 'ground', 'rock',
     'bug', 'ghost', 'steel', 'fire', 'water', 'grass', 'electric',
     'psychic', 'ice', 'dragon', 'dark', 'fairy', 'stellar', 'shadow', 'unknown'
   ]
 
-     if (todoslospokes.length === 0) {
-    return <p>Cargando...</p>;
-  }
+  if (todoslospokes.length === 0) return <p>Cargando...</p>
+  if (resultados.length === 0) return <p>No se encontraron Pokémon.</p>
+
   return (
     <>
       <div className="c-filtro">
@@ -68,9 +63,10 @@ function Inicio() {
         onChange={(e) => setBusqueda(e.target.value)}
         className="c-buscador"
       />
-
+      
+      <div className="c-lista">
       {resultados.map((pokemon) => (
-        <div key={pokemon.name} onClick={() => navigate(`/pokemon/${pokemon.name}`)}>
+        <div className="c-lista-pokemon" key={pokemon.name} onClick={() => navigate(`/pokemon/${pokemon.name}`)}>
           <p>{pokemon.url.split('/')[6]}</p>
           <p>{pokemon.name}</p>
 
@@ -83,6 +79,7 @@ function Inicio() {
           />
         </div>
       ))}
+      </div>
     </>
   )
 }

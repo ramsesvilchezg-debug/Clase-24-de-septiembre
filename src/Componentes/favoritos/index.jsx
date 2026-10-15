@@ -14,6 +14,7 @@ function Favoritos() {
 
   return (
     <>
+    {favoritos.length === 0 && <p>No tienes favoritos.</p>}
       <div className="c-lista">
         {favoritos.map((pokemon) => (
           <div

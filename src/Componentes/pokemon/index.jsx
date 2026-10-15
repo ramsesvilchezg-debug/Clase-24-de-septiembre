@@ -1,63 +1,87 @@
-import { useParams } from "react-router-dom"; 
 import { useState, useEffect } from 'react'
+import { useNavigate } from 'react-router-dom'
 import './style.css'
 
-function Pokemon() {
-    const { name } = useParams(); 
-    const [datapoke, setDatapoke] = useState([]);
-    const [favoritos, setFavoritos] = useState(() => {
-        try {
-            return JSON.parse(localStorage.getItem('favoritos') || '[]');
-        } catch {
-            return [];
+function Inicio() {
+  const [todoslospokes, setTodoslospokes] = useState([])
+  const [busqueda, setBusqueda] = useState('')
+  const [tipopoke, setTipopoke] = useState('All')
+  const navigate = useNavigate()
+
+  useEffect(() => {
+    const cargarPokemons = async () => {
+      try {
+        if (tipopoke === 'All') {
+          const response = await fetch('https://pokeapi.co/api/v2/pokemon?limit=1025')
+          const responseData = await response.json()
+          setTodoslospokes(responseData.results ?? [])
+          return
         }
-    });
-    const esFavorito = favoritos.some(p => p.id === datapoke.id);
 
+        const response = await fetch(`https://pokeapi.co/api/v2/type/${tipopoke}`)
+        const responseData = await response.json()
+        const mascotas = responseData.pokemon?.map((entry) => entry.pokemon) ?? []
+        setTodoslospokes(mascotas)
+      } catch (error) {
+        console.error('Error:', error)
+      }
+    }
 
-    useEffect(() => {
-    fetch(`https://pokeapi.co/api/v2/pokemon/${name}`)
-      .then(response => response.json())
-      .then(responseData => setDatapoke(responseData))
-      .catch(error => console.error("Error:", error));
-    }, [name]); 
+    cargarPokemons()
+  }, [tipopoke])
 
-    const toggleFavorito = () => {
-        let nuevosFavoritos;
-        if (esFavorito) {
-        nuevosFavoritos = favoritos.filter(p => p.id !== datapoke.id);
-        } else {
-        nuevosFavoritos = [...favoritos, { id: datapoke.id, nombre: datapoke.name }];
-        }
-        setFavoritos(nuevosFavoritos);
-        localStorage.setItem('favoritos', JSON.stringify(nuevosFavoritos));
-    };
-    
-    if (!datapoke || !datapoke.id) return <p>Cargando...</p>;
-    return (
-        <div>
-        <p>{datapoke.id}</p>
-        <h1>{datapoke.name}</h1>
-        <img 
-            src={`https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/${datapoke.id}.png`} 
-            alt={datapoke.name} 
-            width="200"
-        />
+  const resultados = busqueda.trim().length >= 3 && isNaN(busqueda)
+    ? todoslospokes.filter((pokemon) =>
+        pokemon.name.toLowerCase().includes(busqueda.toLowerCase())
+      )
+    : todoslospokes
 
-        <p>{datapoke.id}</p>
-        <p>Altura: {datapoke.height/ 10} m / Peso: {datapoke.weight/ 10} kg</p>
+  const tipos = [
+    'All',
+    'normal', 'fighting', 'flying', 'poison', 'ground', 'rock',
+    'bug', 'ghost', 'steel', 'fire', 'water', 'grass', 'electric',
+    'psychic', 'ice', 'dragon', 'dark', 'fairy', 'stellar', 'shadow', 'unknown'
+  ]
 
-        <p>hp: {datapoke.stats[0].base_stat}</p>
-        <p>Velocidad: {datapoke.stats[5].base_stat}</p>
-        <p>Ataque: {datapoke.stats[1].base_stat} Defensa: {datapoke.stats[2].base_stat}</p>
-        <p>Ataque Especial: {datapoke.stats[3].base_stat} Defensa Especial: {datapoke.stats[4].base_stat}</p>
+  if (todoslospokes.length === 0) return <p>Cargando...</p>
+  if (resultados.length === 0) return <p>No se encontraron Pokémon.</p>
 
+  return (
+    <>
+      <div className="c-filtro">
+        {tipos.map((unTipo, index) => (
+          <button type="button" key={index} onClick={() => setTipopoke(unTipo)}>
+            {unTipo}
+          </button>
+        ))}
+      </div>
 
-            <button onClick={toggleFavorito}>
-            {esFavorito ? '❤️' : '🤍'}
-            </button>
+      <input
+        type="text"
+        placeholder="Buscar Pokémon"
+        value={busqueda}
+        onChange={(e) => setBusqueda(e.target.value)}
+        className="c-buscador"
+      />
+      
+      <div className="c-lista">
+      {resultados.map((pokemon) => (
+        <div className="c-lista-pokemon" key={pokemon.name} onClick={() => navigate(`/pokemon/${pokemon.name}`)}>
+          <p>{pokemon.url.split('/')[6]}</p>
+          <p>{pokemon.name}</p>
+
+          <img
+            src={`https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/${pokemon.url.split('/')[6]}.png`}
+            alt={`Pokémon ${pokemon.name}`}
+            width="auto"
+            height="60"
+            loading="lazy"
+          />
         </div>
-    )
+      ))}
+      </div>
+    </>
+  )
 }
 
-export default Pokemon
+export default Inicio
